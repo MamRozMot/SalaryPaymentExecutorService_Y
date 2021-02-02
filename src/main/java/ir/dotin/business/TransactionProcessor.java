@@ -3,7 +3,6 @@ package ir.dotin.business;
 import ir.dotin.PaymentTransactionApp;
 import ir.dotin.exception.InadequateInitialBalanceException;
 import ir.dotin.exception.NoDepositFoundException;
-import ir.dotin.files.BalanceVO;
 import ir.dotin.files.PaymentVO;
 import ir.dotin.files.TransactionVO;
 
@@ -20,7 +19,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static ir.dotin.PaymentTransactionApp.balanceVOs;
 
 public class TransactionProcessor {
 
@@ -46,27 +44,45 @@ public class TransactionProcessor {
         throw new NoDepositFoundException("Debtor deposit not found!");
     }
 
-    private static void validationWithdrawals(List<BalanceVO> depositBalances, List<PaymentVO> paymentVOs, String debtorDepositNumber) throws NoDepositFoundException, InadequateInitialBalanceException {
+    private static void validationWithdrawals(List<PaymentVO> paymentVOs, String debtorDepositNumber) throws Exception {
+        System.out.println("Validate withdrawals...");
         BigDecimal totalCreditorAmount = getCreditorAmountsSum(paymentVOs);
-        String depositNumber = "";
-        for (BalanceVO balanceVO : depositBalances) {
-            if (balanceVO.getDepositNumber().equals(depositNumber))
-                balanceVO.getAmount();
-            BigDecimal debtorBalance = balanceVO.getAmount();
-            if (debtorBalance == null)
-                throw new NoDepositFoundException("Debtor balance not found!");
-            if (totalCreditorAmount.compareTo(debtorBalance) == 1)
-                throw new InadequateInitialBalanceException("Not enough balance!");
+        BigDecimal debtorBalance = getDepositBalance(debtorDepositNumber);
+        if (debtorBalance == null)
+            throw new NoDepositFoundException("Debtor balance not found!");
+        if (totalCreditorAmount.compareTo(debtorBalance) == 1)
+            throw new InadequateInitialBalanceException("Not enough balance!");
+    }
+
+    private static BigDecimal getDepositBalance(String depositNumber) throws Exception {
+        BufferedReader file = new BufferedReader(new FileReader(PaymentTransactionApp.BALANCE_FILE_PATH));
+        String line;
+        try {
+            while ((line = file.readLine()) != null) {
+                if (line.contains(depositNumber + "\t"))
+                    return new BigDecimal(line.split(depositNumber)[1].trim());
+            }
+            return null;
+        } finally {
+            file.close();
         }
     }
 
+    public static void main(String[] args) {
+        BigDecimal a = new BigDecimal(0);
+        BigDecimal b = new BigDecimal(1);
+        System.out.println(a.add(b));
+    }
     private static BigDecimal getCreditorAmountsSum(List<PaymentVO> paymentVOs) {
+//        Double sum = paymentVOs.stream().mapToDouble(bd -> bd.getAmount().doubleValue()).sum();
+//        System.out.println("SUM = " + sum);
         BigDecimal totalCreditorAmount = new BigDecimal(0);
         for (PaymentVO paymentVO : paymentVOs) {
             if (DepositType.CREDITOR.equals(paymentVO.getType())) {
-                totalCreditorAmount.add(paymentVO.getAmount());
+                totalCreditorAmount = totalCreditorAmount.add(paymentVO.getAmount());
             }
         }
+        System.out.println("totalCreditorAmount = " + totalCreditorAmount);
         return totalCreditorAmount;
     }
 
@@ -75,12 +91,13 @@ public class TransactionProcessor {
         Files.createFile(Paths.get(PaymentTransactionApp.TRANSACTION_FILE_PATH));
 
         String debtorDepositNumber = getDebtorDepositNumber(allPaymentVOs);
-        validationWithdrawals(balanceVOs, allPaymentVOs, debtorDepositNumber);
+        validationWithdrawals(allPaymentVOs, debtorDepositNumber);
         List<PaymentVO> paymentVOs = removeDebtorPaymentRecord(allPaymentVOs, debtorDepositNumber);
-        ExecutorService executorService = Executors.newFixedThreadPool(5);
+        ExecutorService executorService = Executors.newFixedThreadPool(PaymentTransactionApp.THREAD_COUNT);
         List<List<PaymentVO>> group = new ArrayList<>();
-        for (int start = 0; start < paymentVOs.size(); start += 200) {
-            group.add(paymentVOs.subList(start, start + 200));
+        int eachThreadCount = PaymentTransactionApp.CREDITOR_COUNT / PaymentTransactionApp.THREAD_COUNT;
+        for (int start = 0; start < paymentVOs.size(); start += eachThreadCount) {
+            group.add(paymentVOs.subList(start, start + eachThreadCount));
         }
         for (List<PaymentVO> paymentVOList : group) {
             MyThreadPool myThreadPool = new MyThreadPool(debtorDepositNumber, paymentVOList);

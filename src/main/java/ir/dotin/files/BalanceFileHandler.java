@@ -5,7 +5,6 @@ import ir.dotin.PaymentTransactionApp;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -15,22 +14,18 @@ import java.util.List;
 public class BalanceFileHandler {
 
 
-    public static void createInitialBalanceFile() throws IOException {
+    public static void createInitialBalanceFile(int creditorCount) throws IOException {
         System.out.println("Creating initial balance file...");
         //To Test Transaction Processor
-        String input1 = "10099999999900000";
-        BigDecimal b = new BigDecimal(input1);
-        BigDecimal a = PaymentTransactionApp.generateRandomAmount().add(b);
         List<BalanceVO> balanceVOs = new ArrayList<>();
-        balanceVOs.add(new BalanceVO(PaymentTransactionApp.DEBTOR_DEPOSIT_NUMBER, a));
+        balanceVOs.add(new BalanceVO(PaymentTransactionApp.DEBTOR_DEPOSIT_NUMBER, PaymentTransactionApp.DEBTOR_DEPOSIT_AMOUNT));
         //To Test InadequateInitialBalanceException
-        // balanceVOs.add(new BalanceVO(PaymentTransactionApp.DEBTOR_DEPOSIT_NUMBER, PaymentTransactionApp.generateRandomAmount()));
-        for (int i = 1; i <= 1000; i++) {
+        for (int i = 1; i <= creditorCount; i++) {
             balanceVOs.add(new BalanceVO(PaymentTransactionApp.CREDITOR_DEPOSIT_NUMBER_PREFIX + i, PaymentTransactionApp.generateRandomAmount()));
         }
         writeBalanceVOToFile(balanceVOs);
 //        printBalanceVOsToConsole(balanceVOs);
-        Files.copy(Paths.get(PaymentTransactionApp.BALANCE_FILE_PATH),Paths.get(PaymentTransactionApp.BALANCE_UPDATE_FILE_PATH));
+        Files.copy(Paths.get(PaymentTransactionApp.BALANCE_FILE_PATH), Paths.get(PaymentTransactionApp.BALANCE_UPDATE_FILE_PATH));
     }
 
     public static void writeBalanceVOToFile(List<BalanceVO> balanceVOs) throws IOException {
