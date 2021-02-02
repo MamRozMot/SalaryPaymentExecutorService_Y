@@ -14,6 +14,7 @@ import static ir.dotin.business.DepositType.DEBTOR;
 public class PaymentFileHandler {
 
     public static List<PaymentVO> createPaymentFile(String debtorDepositNumber, String creditorDepositNumberPrefix, int creditorCount) throws IOException {
+        System.out.println("Creating payment file...");
         List<PaymentVO> paymentVOs = new ArrayList<>();
         //To Test Transaction Processor
         String input1 = "10000000";
@@ -26,7 +27,7 @@ public class PaymentFileHandler {
             paymentVOs.add(new PaymentVO(CREDITOR, creditorDepositNumberPrefix + i, PaymentTransactionApp.generateRandomAmount()));
         }
         writePaymentRecordsToFile(paymentVOs);
-        printPaymentVOsToConsole(paymentVOs);
+//        printPaymentVOsToConsole(paymentVOs);
         return paymentVOs;
     }
 

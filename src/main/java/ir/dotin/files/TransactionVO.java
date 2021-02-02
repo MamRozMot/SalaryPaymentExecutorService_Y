@@ -39,7 +39,7 @@ public class TransactionVO implements Serializable {
     public String toString() {
         return debtorDepositNumber +
                 " " + creditorDepositNumber +
-                " " + amount;
+                " " + amount + "\n";
     }
 }
 

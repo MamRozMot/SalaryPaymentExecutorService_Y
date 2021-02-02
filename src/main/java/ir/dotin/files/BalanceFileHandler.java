@@ -9,16 +9,19 @@ import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 
 public class BalanceFileHandler {
 
 
-    public static List<BalanceVO> createInitialBalanceFile(List<BalanceVO> balanceVOs) throws IOException {
+    public static void createInitialBalanceFile() throws IOException {
+        System.out.println("Creating initial balance file...");
         //To Test Transaction Processor
         String input1 = "10099999999900000";
         BigDecimal b = new BigDecimal(input1);
         BigDecimal a = PaymentTransactionApp.generateRandomAmount().add(b);
+        List<BalanceVO> balanceVOs = new ArrayList<>();
         balanceVOs.add(new BalanceVO(PaymentTransactionApp.DEBTOR_DEPOSIT_NUMBER, a));
         //To Test InadequateInitialBalanceException
         // balanceVOs.add(new BalanceVO(PaymentTransactionApp.DEBTOR_DEPOSIT_NUMBER, PaymentTransactionApp.generateRandomAmount()));
@@ -26,8 +29,8 @@ public class BalanceFileHandler {
             balanceVOs.add(new BalanceVO(PaymentTransactionApp.CREDITOR_DEPOSIT_NUMBER_PREFIX + i, PaymentTransactionApp.generateRandomAmount()));
         }
         writeBalanceVOToFile(balanceVOs);
-        printBalanceVOsToConsole(balanceVOs);
-        return balanceVOs;
+//        printBalanceVOsToConsole(balanceVOs);
+        Files.copy(Paths.get(PaymentTransactionApp.BALANCE_FILE_PATH),Paths.get(PaymentTransactionApp.BALANCE_UPDATE_FILE_PATH));
     }
 
     public static void writeBalanceVOToFile(List<BalanceVO> balanceVOs) throws IOException {
@@ -47,15 +50,10 @@ public class BalanceFileHandler {
     }
 
 
-    public static String createFinalBalanceFile(List<BalanceVO> depositBalances)
-            throws IOException {
-        String resultFinalBalance = "";
-        Path pathBalanceUpdate = Paths.get(PaymentTransactionApp.FILE_PATH_PREFIX + "BalanceUpdate.txt");
-        if (!Files.exists(pathBalanceUpdate)) {
+    public static void createFinalBalanceFile() throws IOException {
+        Path pathBalanceUpdate = Paths.get(PaymentTransactionApp.BALANCE_UPDATE_FILE_PATH);
+        if (!Files.exists(pathBalanceUpdate))
             Files.createFile(pathBalanceUpdate);
-        }
-        resultFinalBalance += PaymentTransactionApp.DEBTOR_DEPOSIT_NUMBER + "\t" + PaymentTransactionApp.CREDITOR_DEPOSIT_NUMBER_PREFIX + "\t" + depositBalances + "\n";
-        return resultFinalBalance;
     }
 
     public static synchronized void writeFinalBalanceVOToFile(List<BalanceVO> balanceVOs) throws IOException {
